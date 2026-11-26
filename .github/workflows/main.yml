@@ -1,43 +1,44 @@
-name: Download MP3 with yt-dlp
+
+name: Download MP3
 
 on:
   workflow_dispatch:
     inputs:
       url:
-        description: '動画・音声のURL'
+        description: "ダウンロード対象のURL"
         required: true
         type: string
 
 jobs:
-  download-and-convert:
+  download:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install yt-dlp and ffmpeg
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          python3 -m pip install -U yt-dlp
+          python -m pip install --upgrade yt-dlp
+
+      - name: Create download directory
+        run: mkdir -p downloads
 
       - name: Download and convert to MP3
         env:
-          TARGET_URL: ${{ inputs.url }}
+          VIDEO_URL: ${{ inputs.url }}
         run: |
-          mkdir -p output
           yt-dlp \
             --no-playlist \
             --extract-audio \
             --audio-format mp3 \
             --audio-quality 0 \
-            --embed-thumbnail \
-            --add-metadata \
-            --restrict-filenames \
-            -o "output/%(title)s.%(ext)s" \
-            "$TARGET_URL"
+            -o "downloads/%(title).200B.%(ext)s" \
+            "$VIDEO_URL"
 
-      - name: Upload MP3 as Artifact
-        uses: actions/upload-artifact@v7
+      - name: Upload MP3 Artifact
+        uses: actions/upload-artifact@v4
         with:
-          path: output/*.mp3
-          archive: false
+          name: downloaded-mp3
+          path: downloads/*.mp3
+          if-no-files-found: error
           retention-days: 7
